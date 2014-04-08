@@ -17,6 +17,10 @@ BitVector::BitVector(int value) {
     size   = NPROCS;
 }
 
+void BitVector::setVector(int vec) {
+    vector = vec;
+}
+
 int BitVector::getVector() {
     return vector;
 }

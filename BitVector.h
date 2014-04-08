@@ -22,6 +22,7 @@ class BitVector {
         int getNthSetBit(int n);
         int getVector();
 
+        void setVector(int vec);
         void clearAllBits();
         void setBit(int bit);
         void clearBit(int bit);
