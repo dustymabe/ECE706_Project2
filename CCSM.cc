@@ -72,6 +72,20 @@ void CCSM::evict() {
     setState(STATEI);
 }
 
+void CCSM::writeback() {
+
+    int addr = cache->getBaseAddr(line->getTag(), line->getIndex());
+
+    // Should not get here unless we are in modified state
+    assert(state == STATEM);
+
+    // On eviction set the state to invalid
+    setState(STATEI);
+
+    // Send notification to the directory
+    NETWORK->sendReqTileToDir(WB, addr, tile->index);
+    // What about data?
+}
 
 void CCSM::netInitInv() {
 

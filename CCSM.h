@@ -29,6 +29,7 @@ class CCSM {
         void netInitInt();
         void procInitRd(ulong addr);
         void procInitWr(ulong addr);
+        void writeback();
 };
 
 #endif
