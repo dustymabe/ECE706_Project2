@@ -36,9 +36,11 @@ public:
     unsigned int l2accesses;
     unsigned int memcycles;
     unsigned int memhopscycles;
+    unsigned int flushcycles;
 
     Tile(int number, int partspertile, int partition);
     ~Tile() {delete l1cache; delete l2cache; };
+    void FlushDirtyBlocks();
     void Access(ulong addr, uchar op);
     void L2Access(ulong addr, uchar op);
     void PrintStats();

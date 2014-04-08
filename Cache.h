@@ -62,6 +62,7 @@ public:
     void PrintStats();
     void PrintStatsTabular(int printhead); 
     void updateLRU(CacheLine *);
+    void FlushDirtyBlocks();
 
     ulong calcTag(ulong addr);
     ulong calcIndex(ulong addr);

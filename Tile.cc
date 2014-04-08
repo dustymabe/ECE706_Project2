@@ -40,6 +40,7 @@ Tile::Tile(int number, int partspertile, int partition) {
     l2accesses = 0;    // How many L2 operations were there for this tile? 
     memcycles = 0;     // Keep up with cycles spent waiting for mem access
     memhopscycles = 0; // Keep up with hop cycles when memory is accessed
+    flushcycles = 0;   // # cycles taken to flush out caches
 
     l1cache = new Cache(this, L1, L1SIZE, L1ASSOC, BLKSIZE);
     assert(l1cache);
@@ -52,6 +53,30 @@ Tile::Tile(int number, int partspertile, int partition) {
     part = new BitVector(partition);
 }
 
+/*
+ * Tile::FlushDirtyBlocks()
+ *     - Flush the dirty blocks from the L1 and L2 caches
+ */
+void Tile::FlushDirtyBlocks() {
+    int state;
+
+    // Reset global CURRENTDELAY counter 
+    CURRENTDELAY = 0;
+    CURRENTMEMDELAY = 0;
+
+    // L1: Flush blocks
+    l1cache->FlushDirtyBlocks();
+
+    // L2: Flush blocks
+    l2cache->FlushDirtyBlocks();
+
+    // All accesses are done so add the accumulated delay
+    // to the cycle counter.
+    flushcycles += CURRENTDELAY;
+    flushcycles += CURRENTMEMDELAY;
+    cycle += CURRENTDELAY;
+    cycle += CURRENTMEMDELAY;
+}
 
 /*
  * Tile::Access()
@@ -198,6 +223,11 @@ void Tile::PrintStatsTabular(int printhead) {
     sprintf(buftemp, "%15s", "cycle");
     strcat(bufhead, buftemp);
     sprintf(buftemp, "%15lu", cycle);
+    strcat(bufbody, buftemp);
+
+    sprintf(buftemp, "%15s", "flushcycles");
+    strcat(bufhead, buftemp);
+    sprintf(buftemp, "%15lu", flushcycles);
     strcat(bufbody, buftemp);
 
     sprintf(buftemp, "%15s", "accesses");

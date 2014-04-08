@@ -110,6 +110,33 @@ ulong Cache::getBaseAddr(ulong tag, ulong index) {
     return ((tag << indexbits) | index) << offsetbits;
 }
 
+/*
+ * Cache::FlushDirtyBlocks
+ *     - Flush all dirty blocks in the cache to memory.
+ */
+void Cache::FlushDirtyBlocks() {
+    CacheLine * line;
+    int i,j;
+
+
+    for (i=0; i < numSets; i++) {
+        for (j=0; j< assoc; j++) {
+            line = &cacheArray[i][j];
+            if (line->isValid() && line->getFlags() == DIRTY) {
+
+                // For L2 send WB msg and data to dir/mem
+                if (cacheLevel == L2) {
+                    writeBack();
+                    line->ccsm->writeback();
+                }
+                
+                // For both L1 and L2.. mark invalid
+                line->invalidate();
+            }
+        }
+    }
+}
+
 
 /*
  * Cache::Access
