@@ -315,8 +315,10 @@ void Dir::setState(ulong addr, int s) {
 
     // If we are going to the invalid state then delete the
     // memory associated with the directory entry.
-    if (s == DSTATEI)
+    if (s == DSTATEI) {
         delete de;
+        directory[BLKADDR(addr)] = NULL;
+    }
 }
 
 /*
@@ -348,7 +350,10 @@ ulong Dir::getFromNetwork(ulong msg, ulong addr, ulong fromtile) {
             assert(0); // should not get here
     }
 
-    return directory[blockaddr]->state;
+    if (directory[blockaddr] == NULL)
+        return DSTATEI;
+    else
+        return directory[blockaddr]->state;
 }
 
 /*
