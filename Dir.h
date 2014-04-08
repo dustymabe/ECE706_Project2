@@ -57,6 +57,8 @@ class Dir {
         void netInitRdX(ulong blockaddr, ulong partid);
         void netInitRd(ulong blockaddr, ulong partid);
         void netInitUpgr(ulong blockaddr, ulong partid);
+        void netInitWB(ulong addr, ulong fromtile);
+        void clearStaleSharers(ulong addr);
 };
 
 #endif

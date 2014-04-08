@@ -16,10 +16,10 @@ protected:
 
     Cache * l1cache;
     Cache * l2cache;
-    BitVector * part;
 
    
 public:
+    BitVector * part;
     unsigned int index;
     unsigned int partscheme;
     unsigned int xindex;

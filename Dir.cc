@@ -271,6 +271,26 @@ int Dir::interveneOwner(int addr) {
 }
 
 /*
+ * Dir::clearStaleSharers
+ *     - Given a block address find stale sharers in the directory
+ *       entry for this given block.
+ */
+void Dir::clearStaleSharers(ulong addr) {
+    // Get the bitvector of sharers.
+    DirEntry  *de = directory[BLKADDR(addr)];
+    BitVector *bv = de->sharers;
+
+
+    // Iterate over sharers and clear bit for any that 
+    // point to invalid partitions
+    int partid;
+    for(partid=0; partid < bv->size; partid++)
+        if (bv->getBit(partid)) 
+            if (parttable[partid]->getNumSetBits() == 0)
+                bv->clearBit(partid);
+}
+
+/*
  * Dir::replyData
  *     - Reply data to a requesting block
  */
@@ -336,6 +356,9 @@ ulong Dir::getFromNetwork(ulong msg, ulong addr, ulong fromtile) {
     if (directory[blockaddr] == NULL)
         directory[blockaddr] = new DirEntry(blockaddr);
 
+    // Kill any inaccurate sharer information
+    clearStaleSharers(addr);
+
     switch (msg) {
         case RD: 
             netInitRd(addr, fromtile);
@@ -345,6 +368,9 @@ ulong Dir::getFromNetwork(ulong msg, ulong addr, ulong fromtile) {
             break;
         case UPGR: 
             netInitUpgr(addr, fromtile);
+            break;
+        case WB: 
+            netInitWB(addr, fromtile);
             break;
         default :
             assert(0); // should not get here
@@ -506,6 +532,40 @@ void Dir::netInitUpgr(ulong addr, ulong fromtile) {
         // For I we should never get UPGR because there are
         // no copies in the system.
         case DSTATEI: 
+            assert(0);
+            break;
+
+        default :
+            assert(0); // should not get here
+    }
+}
+
+/*
+ * Dir::netInitWB
+ *     - This function handles the logic for when an WB request
+ *       is delivered to the directory.
+ */
+void Dir::netInitWB(ulong addr, ulong fromtile) {
+
+    DirEntry * de = directory[BLKADDR(addr)];
+    // Get the partition that the tile belongs to
+    ulong partid = mapTileToPart(fromtile); 
+
+    switch (de->state) {
+        // For ME we should never get UPGR since there
+        // should not be more than one copy in the system
+        case DSTATEEM: 
+            // Clear out the bit related to partid
+            de->sharers->clearBit(partid);
+            assert(de->sharers->getNumSetBits() == 0);
+            // Transition to I
+            setState(addr, DSTATEI);
+            // XXX need to add mem access time?
+            break;
+
+        // For S,I should never get here
+        case DSTATES:
+        case DSTATEI:
             assert(0);
             break;
 

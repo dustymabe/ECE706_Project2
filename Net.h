@@ -34,6 +34,7 @@ enum {
     RD,      // Read
     RDX,     // Read Exclusive
     UPGR,    // Upgrade from S to M
+    WB,      // Writeback from L2 and L2 is going to invalid state
 
     // Tile (L2) -> Tile (L1) messages
     // Note: happens when L2 line is evicted
