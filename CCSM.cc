@@ -58,6 +58,12 @@ void CCSM::setState(int s) {
         line->invalidate();
     }
 
+    // It is possible we are going from M->S if an intervention
+    // request was made. If so then lets change the Flags for the
+    // cache line to be VALID rather than dirty.
+    if (state == STATEM && s == STATES)
+        line->setFlags(VALID);
+
     state = s; // Set the new state
 }
 
