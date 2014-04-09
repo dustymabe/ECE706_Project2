@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     char buf[256];
     char * token;
     char * op;
-    int   proc;
+    int   proc, newproc;
     int   partscheme;
     int   partid;
     int   tabular = 0;
@@ -38,6 +38,7 @@ int main(int argc, char *argv[]) {
     char delimit[4] = " \t\n"; // tokenize based on "space", "tab", eol
     char strHeader[2048];
     char strStats[2048];
+    int count = 0;
 
     // Check input
     if (argv[1] == NULL) {
@@ -102,29 +103,57 @@ int main(int argc, char *argv[]) {
 
     // Read each line of trace file and call Access() for each entry.
     // Each line in the tracefile is of the form:
-    //       processor(0-7) operation(r,w) address(8 hexa chars)
+    //       operation(r,w) address(8 hexa chars)
     //
-    //      0 r 7fc61248
-    //      0 w 7fc62c08
-    //      0 r 7fc63738
+    //      r 0x7fc61248
+    //      w 0x7fc62c08
+    //      r 0x7fc63738
     //
     //
+    proc = 0;
     while (fgets(buf, 1024, fp)) {
 
-        // The proc # is the first item on the line
+        if (count++ == 100000) {
+            count = 0;
+
+            // Find a new proc to migrate to
+            newproc = random() % (NPROCS);
+
+            // Clear out dirty blocks in old and new procs
+            tiles[proc]->FlushDirtyBlocks();
+            tiles[newproc]->FlushDirtyBlocks();
+
+            // reset part info in all tiles
+            for (i=0; i < NPROCS; i++) {
+                tiles[i]->part->clearAllBits();
+                tiles[i]->part->setBit(i);
+                dir->parttable[i]->clearAllBits(); 
+                dir->parttable[i]->setBit(i); 
+            }
+
+
+            // Create a new partition with the old proc and the new
+            dir->parttable[newproc]->clearAllBits();  // zero out one of the partitions
+            dir->parttable[proc]->setBit(newproc);    // Add in part info to the other partition.
+
+            // Set the new partition info in the tiles
+            tiles[proc]->part->setVector(dir->parttable[proc]->getVector());
+            tiles[newproc]->part->setVector(dir->parttable[proc]->getVector());
+
+            // Finally make the newproc be the current proc
+            proc = newproc;
+
+            // Add current proc to new procs partition
+          //printf("processor is %d\n", proc);
+        }
+        assert(proc < NPROCS);
+      //printf("processor is %d\n", proc);
+
+        // The "operation" is first on the line
         token = strtok(buf, delimit);
         assert(token != NULL);
-        proc = atoi(token);
-        assert(proc < NPROCS);
-        //printf("processor is %d\n", proc);
-
-        // The "operation" is next
-        // NOTE: passing NULL to strtok here because
-        //       we want to operate on same string
-        token = strtok(NULL, delimit);
-        assert(token != NULL);
         op = token;
-        //printf("operation is: %s\n", op);
+      //printf("operation is: %s\n", op);
 
         // The mem addr is last
         // NOTE: passing NULL to strtok here because
@@ -132,7 +161,7 @@ int main(int argc, char *argv[]) {
         token = strtok(NULL, delimit);
         assert(token != NULL);
         addr = strtoul(token, NULL, 16);
-        //printf("address is: %x\n", (uint) addr);
+      //printf("address is: %x\n", (uint) addr);
 
         tiles[proc]->Access(addr, op[0]);
 
