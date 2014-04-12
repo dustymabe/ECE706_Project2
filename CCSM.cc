@@ -14,13 +14,6 @@
 // Global NETWORK is defined in simulator.cc
 extern Net *NETWORK;
 
-enum{
-    STATEM = 0,
-    STATEE,
-    STATES,
-    STATEI,
-};
-
 CCSM::CCSM(Tile * t, Cache *c, CacheLine *l) {
     tile  = t;
     cache = c;

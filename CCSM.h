@@ -12,6 +12,13 @@ class Cache;     // Forward Declaration
 class CacheLine; // Forward Declaration
 class Tile;      // Forward Declaration
 
+enum{
+    STATEI = 0,
+    STATEM,
+    STATEE,
+    STATES,
+};
+
 class CCSM {
     private:
     public:
