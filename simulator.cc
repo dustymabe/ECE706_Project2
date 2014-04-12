@@ -132,12 +132,12 @@ int main(int argc, char *argv[]) {
             }
 
             // Create a new partition with the old proc and the new
-            dir->parttable[proc]->setBit(proc);       // Add proc to part info
-            dir->parttable[proc]->setBit(newproc);    // Add newproc to part info
+            dir->parttable[0]->setBit(proc);       // Add proc to part info
+            dir->parttable[0]->setBit(newproc);    // Add newproc to part info
 
             // Set the new partition info in the tiles
-            tiles[proc]->part->setVector(dir->parttable[proc]->getVector());
-            tiles[newproc]->part->setVector(dir->parttable[proc]->getVector());
+            tiles[proc]->part->setVector(dir->parttable[0]->getVector());
+            tiles[newproc]->part->setVector(dir->parttable[0]->getVector());
 
             // Finally make the newproc be the current proc
             oldproc = proc;
