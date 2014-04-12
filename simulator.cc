@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
     char buf[256];
     char * token;
     char * op;
-    int   proc, newproc;
+    int   proc, oldproc, newproc;
     int   partscheme;
     int   partid;
     int   tabular = 0;
@@ -110,6 +110,7 @@ int main(int argc, char *argv[]) {
     //      r 0x7fc63738
     //
     //
+    oldproc = -1;
     proc = 0;
     while (fgets(buf, 1024, fp)) {
 
@@ -119,8 +120,10 @@ int main(int argc, char *argv[]) {
             // Find a new proc to migrate to
             newproc = random() % (NPROCS);
 
-            // Clear out dirty blocks in old and new procs
-            tiles[proc]->FlushDirtyBlocks();
+            // Clear out dirty blocks in the proc that is getting
+            // removed from execution.
+            if (oldproc != -1)
+                tiles[oldproc]->FlushDirtyBlocks();
 
             // reset part info in all tiles
             for (i=0; i < NPROCS; i++) {
@@ -137,6 +140,7 @@ int main(int argc, char *argv[]) {
             tiles[newproc]->part->setVector(dir->parttable[proc]->getVector());
 
             // Finally make the newproc be the current proc
+            oldproc = proc;
             proc = newproc;
 
             // Add current proc to new procs partition

@@ -74,8 +74,6 @@ void Tile::FlushDirtyBlocks() {
     // to the cycle counter.
     flushcycles += CURRENTDELAY;
     flushcycles += CURRENTMEMDELAY;
-    cycle += CURRENTDELAY;
-    cycle += CURRENTMEMDELAY;
 }
 
 /*
