@@ -138,11 +138,17 @@ void Tile::L2Retrieve(ulong addr, uchar op) {
     // Check the other cache in the partition if there is one. 
     // If it is in the neighbor cache then move it here and invalidate
     // it in the remote cache.
+    // NOTE: -1 means there is no neighbor at all
     state = sendToNeighbor(XFER, addr);
-    if (state == HIT) {
+    if (state != -1 && state != STATEI) {
         line = l2cache->fillLine(addr);
-        if (op == 'w')
+        line->ccsm->setState(state);
+        if (op == 'w') {
             line->setFlags(DIRTY);
+            line->ccsm->procInitWr(addr);
+        } else {
+            line->ccsm->procInitRd(addr);
+        }
         ctocxfer++;
         ctocdelay += CURRENTDELAY;
         return;
@@ -439,11 +445,12 @@ int Tile::getFromNetwork(ulong msg, ulong addr, ulong fromtile) {
             CURRENTDELAY += L2ATIME;
 
             if (!line) {
-                return MISS;
+                return STATEI;
             } else {
                 NETWORK->fakeDataTileToTile(index, fromtile);
-                line->ccsm->getFromNetwork(INV);
-                return HIT;
+                state = line->ccsm->state;
+                line->ccsm->setState(STATEI);
+                return state;
             }
 
         default:
