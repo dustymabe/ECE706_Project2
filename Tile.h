@@ -43,10 +43,12 @@ public:
     void FlushDirtyBlocks();
     void Access(ulong addr, uchar op);
     void L2Access(ulong addr, uchar op);
+    void L2Retrieve(ulong addr, uchar op);
     void PrintStats();
     void PrintStatsTabular(int printhead);
 
     void broadcastToPartition(ulong msg, ulong addr);
+    int sendToNeighbor(ulong msg, ulong addr);
     int getFromNetwork(ulong msg, ulong addr, ulong fromtile);
     int mapAddrToTile(ulong addr);
 };

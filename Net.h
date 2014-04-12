@@ -44,6 +44,9 @@ enum {
     // Note: happens on L1 miss or L1 writethrough
     L2RD,
     L2WR,
+
+    // Tile (L1/L2) -> Tile (L2) messages
+    XFER,
 };
 
 

@@ -99,16 +99,64 @@ void Tile::Access(ulong addr, uchar op) {
     // If a hit then we are done (almost). Must make any write
     // hits in the L1 access the L2 as well (WRITETHROUGH).
     if (state == HIT && op == 'w')
-        L2Access(addr, op); // Aggregate L2 access
+        L2Retrieve(addr, op); // Aggregate L2 access
 
     // L2: If the L1 Missed then access the aggregate L2
     if (state == MISS)
-        L2Access(addr, op);
+        L2Retrieve(addr, op);
 
     // All accesses are done so add the accumulated delay
     // to the cycle counter.
     cycle += CURRENTDELAY;
     cycle += CURRENTMEMDELAY;
+}
+
+/*
+ * Tile::L2Retrieve()
+ */
+void Tile::L2Retrieve(ulong addr, uchar op) {
+
+    CacheLine * line;
+    int state;
+
+    // Bump accesses counter
+    l2accesses++;
+
+    // Get the L2 cache line that corresponds to addr
+    line = l2cache->findLine(addr);
+    //CURRENTDELAY += L2ATIME;
+    
+    // If the line is in the local cache then perform access
+    if (line) {
+        state = l2cache->Access(addr, op);
+        assert(state == HIT);
+        locxfer++;
+        locdelay += CURRENTDELAY;
+        return;
+    }
+
+    // Check the other cache in the partition if there is one. 
+    // If it is in the neighbor cache then move it here and invalidate
+    // it in the remote cache.
+    state = sendToNeighbor(XFER, addr);
+    if (state == HIT) {
+        line = l2cache->fillLine(addr);
+        if (op == 'w')
+            line->setFlags(DIRTY);
+        ctocxfer++;
+        ctocdelay += CURRENTDELAY;
+        return;
+    }
+
+    // If we are here then the line is not in the local or neighbor
+    // cache. Must access memory. The l2cache->Access function will
+    // take care of this for us. 
+    state = l2cache->Access(addr, op);
+    assert(state == MISS);
+    memxfer++;
+    memcycles     += CURRENTMEMDELAY;
+    memhopscycles += (CURRENTMEMDELAY + CURRENTDELAY);
+    return;
 }
 
 /*
@@ -369,26 +417,34 @@ int Tile::getFromNetwork(ulong msg, ulong addr, ulong fromtile) {
             line = l2cache->findLine(addr);
             CURRENTDELAY += L2ATIME;
 
-            // If the line has been evicted already then 
-            // nothing to do.
-            if (!line)
-                return -1;
+            // If it is not in this cache and this is a request from
+            // the directory (not a forwarded request from another
+            // tile) then forward the request on to the other tile. 
+            if (!line) {
+                if (fromtile == -1) // Is request from the directory?
+                    return sendToNeighbor(msg, addr);
+                else
+                    return -1;
+            }
 
             // Pass the message on to the CCSM
             line->ccsm->getFromNetwork(msg);
             return -1;
 
-        case L2RD:
-            state = l2cache->Access(addr, 'r');
-            // Fake sending back data to the requesting tile
-            NETWORK->fakeDataTileToTile(index, fromtile);
-            return state;
+        case XFER:
 
-        case L2WR:
-            state = l2cache->Access(addr, 'w');
-            // Fake sending back data to the requesting tile
-            NETWORK->fakeDataTileToTile(index, fromtile);
-            return state;
+            // Check to see if it is in this cache. If so then
+            // send data and invalidate in this cache.
+            line = l2cache->findLine(addr);
+            CURRENTDELAY += L2ATIME;
+
+            if (!line) {
+                return MISS;
+            } else {
+                NETWORK->fakeDataTileToTile(index, fromtile);
+                line->ccsm->getFromNetwork(INV);
+                return HIT;
+            }
 
         default:
             assert(0); // Should not get here
@@ -424,4 +480,22 @@ void Tile::broadcastToPartition(ulong msg, ulong addr) {
 
     // Add the max to the original delay
     CURRENTDELAY = origDelay + max;
+}
+
+/*
+ * Tile::sendToNeighbor
+ *     - send a message to neighbor
+ */
+int Tile::sendToNeighbor(ulong msg, ulong addr) {
+
+    int i;
+    int num = part->getNumSetBits();
+    if (num < 2) 
+        return -1;
+
+    for(i=0; i < part->size; i++)
+        if (part->getBit(i) && i != index)
+            return NETWORK->sendReqTileToTile(msg, addr, index, i);
+
+    assert(0); // Should not get here
 }

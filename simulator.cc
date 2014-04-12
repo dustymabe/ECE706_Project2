@@ -121,20 +121,16 @@ int main(int argc, char *argv[]) {
 
             // Clear out dirty blocks in old and new procs
             tiles[proc]->FlushDirtyBlocks();
-            tiles[newproc]->FlushDirtyBlocks();
 
             // reset part info in all tiles
             for (i=0; i < NPROCS; i++) {
                 tiles[i]->part->clearAllBits();
-                tiles[i]->part->setBit(i);
                 dir->parttable[i]->clearAllBits(); 
-                dir->parttable[i]->setBit(i); 
             }
 
-
             // Create a new partition with the old proc and the new
-            dir->parttable[newproc]->clearAllBits();  // zero out one of the partitions
-            dir->parttable[proc]->setBit(newproc);    // Add in part info to the other partition.
+            dir->parttable[proc]->setBit(proc);       // Add proc to part info
+            dir->parttable[proc]->setBit(newproc);    // Add newproc to part info
 
             // Set the new partition info in the tiles
             tiles[proc]->part->setVector(dir->parttable[proc]->getVector());

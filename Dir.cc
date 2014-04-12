@@ -130,7 +130,10 @@ int Dir::mapAddrToTile(int partid, int addr) {
     // Find the actual tile id of the tile. Note: add
     // 1 because even if offset is 0 we want to find 1st
     // set bit. 
-    int tileid = bv->getNthSetBit(tileoffset + 1);
+    //int tileid = bv->getNthSetBit(tileoffset + 1);
+    //
+    // XXXXXXXXXXXXX right now just map to first tile in part.
+    int tileid = bv->getNthSetBit(1);
 
     return tileid;
 }
