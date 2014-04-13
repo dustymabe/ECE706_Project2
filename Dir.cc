@@ -110,6 +110,18 @@ Dir::Dir(int partscheme) {
 }
 
 /*
+ * Dir destructor
+ *    - Free mem related to Dir object.
+ */
+Dir::~Dir() {
+    int i;
+    delete[] directory;
+    for (i=0; i < numparts; i++)
+        delete parttable[i];
+    delete[] parttable;
+}
+
+/*
  * Dir::mapAddrToTile
  *     - Given an address and a partition ID, map them
  *       to a specific tile within the partition. 

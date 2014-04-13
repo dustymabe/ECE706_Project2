@@ -28,6 +28,7 @@ protected:
 public:
     CCSM * ccsm;
     CacheLine()                 { tag = 0; Flags = 0; }
+    ~CacheLine()                { if (ccsm) delete ccsm; }
     ulong getTag()              { return tag; }
     ulong getIndex()            { return index; }
     ulong getFlags()            { return Flags;}

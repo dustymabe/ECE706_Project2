@@ -53,6 +53,12 @@ Tile::Tile(int number, int partspertile, int partition) {
     part = new BitVector(partition);
 }
 
+Tile::~Tile() {
+    delete l1cache;
+    delete l2cache;
+    delete part;
+}
+
 /*
  * Tile::FlushDirtyBlocks()
  *     - Flush the dirty blocks from the L1 and L2 caches

@@ -74,6 +74,13 @@ Cache::Cache(Tile * t, int l, int s, int a, int b) {
             }
 }
 
+Cache::~Cache() {
+    int i;
+    for (i=0; i < numSets; i++)
+        delete[] cacheArray[i];
+    delete[] cacheArray;
+}
+
 /*
  * Cache::calcTag
  *     - Return the tag from addr. This is done by

@@ -43,7 +43,7 @@ public:
     ulong lruCounter;  
      
     Cache(Tile * t, int l, int s, int a, int b);
-    ~Cache() { delete cacheArray;}
+    ~Cache();
 
     CacheLine * fillLine(ulong addr);
     CacheLine * findLine(ulong addr);

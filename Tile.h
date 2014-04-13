@@ -39,7 +39,7 @@ public:
     unsigned int flushcycles;
 
     Tile(int number, int partspertile, int partition);
-    ~Tile() {delete l1cache; delete l2cache; };
+    ~Tile();
     void FlushDirtyBlocks();
     void Access(ulong addr, uchar op);
     void L2Access(ulong addr, uchar op);

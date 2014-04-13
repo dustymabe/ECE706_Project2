@@ -54,7 +54,7 @@ int main(int argc, char *argv[]) {
     sscanf(argv[2], "%u", &PARTSHARING);
 
     // Store the filename
-    char *fname =  (char *)malloc(100);
+    char *fname;
     fname = argv[3];
 
     if (argv[4] != NULL)
