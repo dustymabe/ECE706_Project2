@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
     char * token;
     char * op;
     int   proc, oldproc, newproc;
-    int   partscheme;
+    int   partscheme = 1;
     int   partid;
     int   tabular = 0;
     ulong addr;
@@ -39,19 +39,26 @@ int main(int argc, char *argv[]) {
     char strHeader[2048];
     char strStats[2048];
     int count = 0;
+    int interval = 0; // interval at which to migrate process
+    int overlap = 0;  // how long should the partition be shared with the old tile
 
     // Check input
     if (argv[1] == NULL) {
         printf("input format: ");
-        printf("./sim <partitions> <partsharing> <trace_file> <tabular>\n");
+        printf("./sim <interval> <overlap> <trace_file> <tabular>\n");
         exit(1);
     }
 
     //Convert the arguments to integer values
-    sscanf(argv[1], "%u", &partscheme);
+    sscanf(argv[1], "%u", &interval);
 
     //Convert the arguments to integer values
-    sscanf(argv[2], "%u", &PARTSHARING);
+    sscanf(argv[2], "%u", &overlap);
+
+    // Error check the arguments
+    assert(interval >= overlap);
+    if (interval == 0)
+        assert(overlap == 0);
 
     // Store the filename
     char *fname;
@@ -90,6 +97,14 @@ int main(int argc, char *argv[]) {
         assert(tiles[i]);
     }
 
+    // Ok now clean out the partition info for part > 0 because 
+    // we are only using one partition at a time.
+    for (i=1; i < NPROCS; i++) {
+        tiles[i]->part->clearAllBits();
+        dir->parttable[i]->clearAllBits();
+    }
+
+
     // Create the global network element
     NETWORK = new Net(dir, tiles);
     assert(NETWORK);
@@ -110,34 +125,57 @@ int main(int argc, char *argv[]) {
     //      r 0x7fc63738
     //
     //
+    newproc = -1;
     oldproc = -1;
     proc = 0;
     while (fgets(buf, 1024, fp)) {
+        count++;
 
-        if (count++ == 100000) {
+        if (overlap && (count == overlap)) {
+
+            // 1 - Clear out dirty blocks in old tile
+            // 2 - Clear partition information from old tile
+            // 3 - Clear tile from partition table entry.
+            if (oldproc != -1) {
+                tiles[oldproc]->FlushDirtyBlocks();
+                tiles[oldproc]->part->clearAllBits();
+                dir->parttable[0]->clearBit(oldproc);
+                tiles[proc]->part->setVector(dir->parttable[0]->getVector());
+            }
+        }
+
+        if (interval && (count == interval)) {
             count = 0;
 
-            // Find a new proc to migrate to
-            newproc = random() % (NPROCS);
-
-            // Clear out dirty blocks in the proc that is getting
-            // removed from execution.
-            if (oldproc != -1)
-                tiles[oldproc]->FlushDirtyBlocks();
-
-            // reset part info in all tiles
-            for (i=0; i < NPROCS; i++) {
-                tiles[i]->part->clearAllBits();
-                dir->parttable[i]->clearAllBits(); 
+            // Find a new random proc to migrate to. Loop 
+            // until the newproc != proc
+            while (1) {
+                newproc = random() % (NPROCS);
+                if (newproc != proc)
+                    break;
             }
 
-            // Create a new partition with the old proc and the new
-            dir->parttable[0]->setBit(proc);       // Add proc to part info
-            dir->parttable[0]->setBit(newproc);    // Add newproc to part info
+            // If there isn't supposed to be any overlap then
+            // go ahead and flush proc
+            if (overlap == 0) {
 
-            // Set the new partition info in the tiles
-            tiles[proc]->part->setVector(dir->parttable[0]->getVector());
-            tiles[newproc]->part->setVector(dir->parttable[0]->getVector());
+                tiles[proc]->FlushDirtyBlocks();
+                dir->parttable[0]->clearAllBits();
+                dir->parttable[0]->setBit(newproc);
+                tiles[proc]->part->clearAllBits();
+                tiles[newproc]->part->setVector(dir->parttable[0]->getVector());
+
+            } else {
+
+                // Create a new partition with the old proc and the new
+                dir->parttable[0]->clearAllBits(); 
+                dir->parttable[0]->setBit(proc);       // Add proc to part info
+                dir->parttable[0]->setBit(newproc);    // Add newproc to part info
+
+                // Set the new partition info in the tiles
+                tiles[proc]->part->setVector(dir->parttable[0]->getVector());
+                tiles[newproc]->part->setVector(dir->parttable[0]->getVector());
+            }
 
             // Finally make the newproc be the current proc
             oldproc = proc;
