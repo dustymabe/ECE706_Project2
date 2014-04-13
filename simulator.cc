@@ -97,11 +97,14 @@ int main(int argc, char *argv[]) {
         assert(tiles[i]);
     }
 
-    // Ok now clean out the partition info for part > 0 because 
-    // we are only using one partition at a time.
-    for (i=1; i < NPROCS; i++) {
-        tiles[i]->part->clearAllBits();
-        dir->parttable[i]->clearAllBits();
+    // If we are going to have overlap then clean out the 
+    // partition info for part > 0 because we are only using 
+    // one partition at a time.
+    if (overlap != 0) {
+        for (i=1; i < NPROCS; i++) {
+            tiles[i]->part->clearAllBits();
+            dir->parttable[i]->clearAllBits();
+        }
     }
 
 
@@ -156,14 +159,12 @@ int main(int argc, char *argv[]) {
             }
 
             // If there isn't supposed to be any overlap then
-            // go ahead and flush proc
+            // go ahead and flush proc. Also no need to worry
+            // about playing with partitions as each proc is 
+            // already in its own private partition.
             if (overlap == 0) {
 
                 tiles[proc]->FlushDirtyBlocks();
-                dir->parttable[0]->clearAllBits();
-                dir->parttable[0]->setBit(newproc);
-                tiles[proc]->part->clearAllBits();
-                tiles[newproc]->part->setVector(dir->parttable[0]->getVector());
 
             } else {
 
