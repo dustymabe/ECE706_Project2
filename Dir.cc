@@ -473,6 +473,10 @@ void Dir::netInitRd(ulong addr, ulong fromtile) {
 
         // For EM we need to transistion to shared state 
         // and send an intervention to previous owner.
+        // NOTE: It is possible this dir entry has stale
+        //       information (i.e silently evicted E). Before
+        //       transition to S check to see how many sharers
+        //       and only go to S if there is more than 1. 
         case DSTATEEM: 
             // Find the closest sharer
             closesttile = findClosestSharer(addr, fromtile);
@@ -482,8 +486,9 @@ void Dir::netInitRd(ulong addr, ulong fromtile) {
             replyData(addr, closesttile, fromtile);
             // Add new sharer to bit map.
             de->sharers->setBit(partid);
-            // Transition to S
-            setState(addr, DSTATES);
+            // Transition to S if more than 1 sharer.
+            if (de->sharers->getNumSetBits() > 1)
+                setState(addr, DSTATES);
             break;
 
         // For S, no need to change state
@@ -567,8 +572,7 @@ void Dir::netInitWB(ulong addr, ulong fromtile) {
     ulong partid = mapTileToPart(fromtile); 
 
     switch (de->state) {
-        // For ME we should never get UPGR since there
-        // should not be more than one copy in the system
+        // For ME need to clear out partid and go to I
         case DSTATEEM: 
             // Clear out the bit related to partid
             de->sharers->clearBit(partid);

@@ -37,7 +37,7 @@ public:
     void setFlags(ulong flags)  { Flags = flags;}
     void setTag(ulong a)        { tag   = a; }
     void setIndex(ulong a)      { index = a; }
-    void invalidate()           { tag = 0; Flags = INVALID; }
+    void invalidate()           { tag = 0; index = 0; Flags = INVALID; }
     bool isValid()              { return ((Flags) != INVALID); }
     void init(CCSM *sm) {
         invalidate(); 

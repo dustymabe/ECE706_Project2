@@ -128,7 +128,6 @@ void Tile::L2Retrieve(ulong addr, uchar op) {
 
     // Get the L2 cache line that corresponds to addr
     line = l2cache->findLine(addr);
-    //CURRENTDELAY += L2ATIME;
     
     // If the line is in the local cache then perform access
     if (line) {

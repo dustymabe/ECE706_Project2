@@ -129,16 +129,24 @@ void Cache::FlushDirtyBlocks() {
     for (i=0; i < numSets; i++) {
         for (j=0; j< assoc; j++) {
             line = &cacheArray[i][j];
-            if (line->isValid() && line->getFlags() == DIRTY) {
+            if (line->isValid()) {
 
-                // For L2 send WB msg and data to dir/mem
-                if (cacheLevel == L2) {
+                // For all we need update cache counter
+                // if this is a writeback
+                if (line->getFlags() == DIRTY)
                     writeBack();
-                    line->ccsm->writeback();
+                
+                // For L2 we need to notify CCSM and 
+                // writeback to dir/mem if necessary
+                if (cacheLevel == L2) {
+                    if (line->getFlags() == DIRTY)
+                        line->ccsm->writeback();
+                    else
+                        line->ccsm->evict();
                 }
                 
                 // For both L1 and L2.. mark invalid
-                line->invalidate();
+                line->invalidate(); 
             }
         }
     }
